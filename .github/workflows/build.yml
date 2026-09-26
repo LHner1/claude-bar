@@ -1,0 +1,19 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build app bundle
+        run: ./scripts/build-app.sh
+      - name: Smoke-test status line helper
+        run: |
+          echo '{"session_id":"ci","model":{"display_name":"Opus"},"rate_limits":{"five_hour":{"used_percentage":12,"resets_at":4102444800}}}' \
+            | build/ClaudeBar.app/Contents/MacOS/claude-bar-statusline
+          test -f ~/.claude/claude-bar/limits.json
