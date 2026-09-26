@@ -3,10 +3,9 @@
 A native macOS menu bar app for [Claude Code](https://code.claude.com), styled after [Stats](https://github.com/exelban/stats).
 See at a glance whether a session is waiting for you, how much of your plan's limits you have used, and how many tokens you burn.
 
-```
- ▣▣▣  5H    7D        ← one traffic light per session + limits in the menu bar
-      38%   12%
-```
+<p align="center">
+  <img src="docs/screenshot.png" alt="ClaudeBar menu bar item and popup with limits, sessions and token usage" width="340">
+</p>
 
 ## Features
 
@@ -31,6 +30,28 @@ See at a glance whether a session is waiting for you, how much of your plan's li
 
 ## Install
 
+### Homebrew (recommended)
+
+```bash
+brew install --cask lhner1/tap/claude-bar
+/Applications/ClaudeBar.app/Contents/Resources/statusline.sh enable   # connect the Claude Code status line
+open /Applications/ClaudeBar.app
+```
+
+Update with `brew upgrade --cask claude-bar`.
+
+### Download
+
+1. Download **[ClaudeBar.zip](https://github.com/LHner1/claude-bar/releases/latest/download/ClaudeBar.zip)** from the latest release, unzip it and move `ClaudeBar.app` to `/Applications`.
+2. Open it once and allow it in System Settings (see [below](#macos-says-it-cant-verify-claudebar)).
+3. Connect the Claude Code status line:
+
+   ```bash
+   /Applications/ClaudeBar.app/Contents/Resources/statusline.sh enable
+   ```
+
+### From source
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/LHner1/claude-bar/main/install.sh | bash
 ```
@@ -49,11 +70,33 @@ The installer
 2. sets ClaudeBar's helper as `statusLine` in `~/.claude/settings.json` (a backup is written to `settings.json.bak-claudebar`)
 3. starts the app
 
+Options: `--no-statusline` (don't touch settings), `--no-launch`.
+
 **Already have a status line?** It is kept. ClaudeBar records the data and then runs your previous
 command with the same input, so your status line looks exactly like before.
 
-Options: `--no-statusline` (don't touch settings), `--no-launch`.
 To start ClaudeBar automatically, enable **Launch at Login** in the gear menu.
+
+### macOS says it can't verify ClaudeBar
+
+ClaudeBar is a free hobby project without a paid Apple Developer account, so the release builds are
+signed ad hoc but **not notarized** by Apple. The first time you open a downloaded copy, macOS shows
+*"Apple could not verify ClaudeBar is free of malware"*. To open it anyway:
+
+1. Click **Done** in that dialog.
+2. Open **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to ClaudeBar.
+3. Confirm with **Open Anyway** and your password.
+
+Or clear the quarantine flag in Terminal:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/ClaudeBar.app
+```
+
+You only need to do this once per version. The Homebrew cask does it for you, and builds from source
+never get the flag. If you'd rather not trust a prebuilt binary, build it yourself: every release is made
+by [a public GitHub workflow](.github/workflows/release.yml) from the tagged source, and the zip's SHA-256
+is attached to the release.
 
 ## How it works
 
@@ -82,6 +125,13 @@ The installer only edits the `statusLine` key in `~/.claude/settings.json` and k
 ## Uninstall
 
 ```bash
+/Applications/ClaudeBar.app/Contents/Resources/statusline.sh disable   # restore your previous status line
+brew uninstall --cask claude-bar                                        # Homebrew (--zap also deletes ~/.claude/claude-bar)
+```
+
+If you installed from source:
+
+```bash
 ./uninstall.sh           # removes the app and restores your previous status line
 ./uninstall.sh --purge   # also deletes ~/.claude/claude-bar
 ```
@@ -95,6 +145,19 @@ open build/ClaudeBar.app --args --show-popup             # opens the popup right
 
 The project is a plain Swift package with two executables: `ClaudeBar` (the app) and
 `claude-bar-statusline` (the status line helper, bundled inside the app).
+
+### Releasing
+
+Push a version tag. The [release workflow](.github/workflows/release.yml) builds a universal
+(Apple Silicon + Intel) `ClaudeBar.zip`, publishes the GitHub release and updates the cask in
+[LHner1/homebrew-tap](https://github.com/LHner1/homebrew-tap):
+
+```bash
+git tag v1.0.0 && git push origin v1.0.0
+```
+
+Updating the tap needs a `HOMEBREW_TAP_TOKEN` secret (a fine-grained token with *Contents: read and write*
+on the tap repository). Without it, the workflow prints the cask in the job summary to copy by hand.
 
 ## Disclaimer
 
