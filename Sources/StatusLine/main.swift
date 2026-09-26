@@ -17,6 +17,9 @@ let historyURL = baseDir.appendingPathComponent("limits-history.jsonl")
 let configURL = baseDir.appendingPathComponent("config.json")
 let now = Date().timeIntervalSince1970
 
+// Everything we write (paths, model, cost, limits) is private: files 0600, directories 0700.
+umask(0o077)
+
 // MARK: - Helpers
 
 func number(_ any: Any?) -> Double? { (any as? NSNumber)?.doubleValue }
@@ -116,6 +119,10 @@ guard let json = (try? JSONSerialization.jsonObject(with: input)) as? [String: A
 }
 
 try? fm.createDirectory(at: sessionsDir, withIntermediateDirectories: true)
+// Tighten directories created by older versions with default permissions
+for dir in [baseDir, sessionsDir] {
+    try? fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: dir.path)
+}
 
 // MARK: - Limits
 
@@ -161,7 +168,8 @@ let cost = dict(json["cost"])
 let context = dict(json["context_window"])
 let cwd = (dict(json["workspace"])?["current_dir"] as? String) ?? (json["cwd"] as? String) ?? ""
 
-if let sessionId, !sessionId.isEmpty, !sessionId.contains("/") {
+// Used as a file name – only allow plain IDs (no path separators or dots)
+if let sessionId, sessionId.range(of: #"^[A-Za-z0-9_-]{1,128}$"#, options: .regularExpression) != nil {
     var session: [String: Any] = ["session_id": sessionId, "cwd": cwd, "updated_at": now]
     session["model_id"] = model?["id"]
     session["model_name"] = model?["display_name"]

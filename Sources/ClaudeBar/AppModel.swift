@@ -66,7 +66,8 @@ final class AppModel: ObservableObject {
 
             // Extra info from the status line (model, context, cost)
             let extra = Paths.barSessions.appendingPathComponent("\(sessionId).json")
-            if let data = try? Data(contentsOf: extra),
+            if sessionId.range(of: #"^[A-Za-z0-9_-]{1,128}$"#, options: .regularExpression) != nil,
+               let data = try? Data(contentsOf: extra),
                let info = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] {
                 session.model = (info["model_id"] as? String).map(Fmt.modelName) ?? info["model_name"] as? String
                 session.contextPct = (info["context_pct"] as? NSNumber)?.doubleValue

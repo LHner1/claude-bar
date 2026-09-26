@@ -66,6 +66,17 @@ Limits only update while a Claude Code session is running. When none is, the pop
 
 The first time you click a session, macOS asks whether ClaudeBar may control your terminal app. That permission is needed to select the right tab.
 
+## Privacy & security
+
+- **No network access.** ClaudeBar and its helper never open a connection; nothing leaves your Mac.
+- **Transcripts stay unread.** From `~/.claude/projects` only the token counts, model name and timestamp of each response are used; message content is ignored and nothing derived from it is stored.
+- **Private files.** Everything under `~/.claude/claude-bar/` is created with `0700`/`0600` permissions, so other users on the Mac can't read your project paths or usage.
+- **Hardened runtime.** The app is signed with the hardened runtime, which blocks code injection into the process that holds the terminal Automation permission.
+- **Minimal AppleScript.** Scripts only select the tab whose TTY matches a running session; they never send keystrokes or text.
+- **Defensive parsing.** Session IDs, TTY names and folder paths from local files are validated before they're used in file names, scripts or `open` calls.
+
+The installer only edits the `statusLine` key in `~/.claude/settings.json` and keeps a backup next to it.
+
 ## Uninstall
 
 ```bash
