@@ -71,6 +71,7 @@ if [ "$CONFIGURE_STATUSLINE" = 1 ]; then
     python3 - "$HOME/.claude/settings.json" "$DEST/Contents/MacOS/claude-bar-statusline" "$HOME/.claude/claude-bar/config.json" <<'PY'
 import json, os, shutil, sys
 
+os.umask(0o077)  # config and backups are private to the user
 settings_path, command, config_path = sys.argv[1:4]
 settings = {}
 if os.path.exists(settings_path):
@@ -98,6 +99,7 @@ if "claude-bar-statusline" not in current.get("command", ""):
         config["previous_statusline"] = None
 
 os.makedirs(os.path.dirname(config_path), exist_ok=True)
+os.chmod(os.path.dirname(config_path), 0o700)
 with open(config_path, "w") as f:
     json.dump(config, f, indent=2)
 

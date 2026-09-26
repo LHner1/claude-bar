@@ -25,8 +25,9 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp Support/Info.plist "$APP/Contents/Info.plist"
 cp "$BIN/ClaudeBar" "$BIN/claude-bar-statusline" "$APP/Contents/MacOS/"
 
-# Ad-hoc signature – enough to run locally built apps.
-codesign --force --sign - "$APP/Contents/MacOS/claude-bar-statusline"
-codesign --force --sign - "$APP"
+# Ad-hoc signature with the hardened runtime: blocks code injection (e.g. DYLD_INSERT_LIBRARIES),
+# so nothing can piggyback on the Automation permission the user grants ClaudeBar.
+codesign --force --options runtime --sign - "$APP/Contents/MacOS/claude-bar-statusline"
+codesign --force --options runtime --entitlements Support/ClaudeBar.entitlements --sign - "$APP"
 
 echo "==> Built $APP"

@@ -11,7 +11,8 @@ import Darwin
 enum WindowFocuser {
     @MainActor
     static func focus(_ session: ClaudeSession) -> Bool {
-        if let tty = tty(of: session.pid) {
+        // The TTY path goes into an AppleScript string, so only accept plain device names.
+        if let tty = tty(of: session.pid), tty.range(of: #"^/dev/tty[A-Za-z0-9]+$"#, options: .regularExpression) != nil {
             if isRunning("com.googlecode.iterm2"), run(iTermScript(tty: tty)) { return true }
             if isRunning("com.apple.Terminal"), run(terminalScript(tty: tty)) { return true }
         }
@@ -19,6 +20,16 @@ enum WindowFocuser {
             return app.activate(options: [.activateAllWindows])
         }
         return false
+    }
+
+    /// Opens a session's working directory in Finder. Only real folders are opened – never app
+    /// bundles or files – so a tampered session file can't make ClaudeBar launch something.
+    @MainActor
+    static func revealFolder(_ path: String) {
+        var isDir: ObjCBool = false
+        guard path.hasPrefix("/"), FileManager.default.fileExists(atPath: path, isDirectory: &isDir), isDir.boolValue,
+              !NSWorkspace.shared.isFilePackage(atPath: path) else { return }
+        NSWorkspace.shared.open(URL(fileURLWithPath: path, isDirectory: true))
     }
 
     // MARK: - Process info

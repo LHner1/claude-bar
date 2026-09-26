@@ -214,7 +214,7 @@ private struct SessionsSection: View {
                         SessionRow(session: session, now: model.now) {
                             model.closePopup?()
                             if !WindowFocuser.focus(session) {
-                                NSWorkspace.shared.open(URL(fileURLWithPath: session.cwd))
+                                WindowFocuser.revealFolder(session.cwd)
                             }
                         }
                     }
@@ -279,7 +279,7 @@ private struct SessionRow: View {
         .onTapGesture(perform: open)
         .contextMenu {
             Button("Show Window", action: open)
-            Button("Open Folder") { NSWorkspace.shared.open(URL(fileURLWithPath: session.cwd)) }
+            Button("Open Folder") { WindowFocuser.revealFolder(session.cwd) }
             Button("Copy Session ID") {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(session.id, forType: .string)
