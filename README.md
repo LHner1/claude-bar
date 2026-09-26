@@ -156,8 +156,8 @@ Push a version tag. The [release workflow](.github/workflows/release.yml) builds
 git tag v1.0.0 && git push origin v1.0.0
 ```
 
-Updating the tap needs a `HOMEBREW_TAP_TOKEN` secret (a fine-grained token with *Contents: read and write*
-on the tap repository). Without it, the workflow prints the cask in the job summary to copy by hand.
+Updating the tap uses a write-enabled deploy key of the tap repository, stored as the
+`HOMEBREW_TAP_DEPLOY_KEY` secret. Without it, the workflow prints the cask in the job summary to copy by hand.
 
 ## Disclaimer
 
