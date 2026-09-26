@@ -4,16 +4,18 @@ A native macOS menu bar app for [Claude Code](https://code.claude.com), styled a
 See at a glance whether a session is waiting for you, how much of your plan's limits you have used, and how many tokens you burn.
 
 ```
- ▣  5H    7D          ← traffic light + limits in the menu bar
-    38%   12%
+ ▣▣▣  5H    7D        ← one traffic light per session + limits in the menu bar
+      38%   12%
 ```
 
 ## Features
 
-- **Traffic light** in the menu bar. Each lamp lights up when at least one session is in that state:
-  - 🔴 a session **needs you** (permission prompt, question …)
-  - 🟡 a session is **working**
-  - 🟢 a session is **ready** for your next prompt
+- **A traffic light per session** in the menu bar (oldest session on the left, same order as in the popup):
+  - 🔴 the session **needs you** (permission prompt, question …)
+  - 🟡 the session is **working**, or a background shell command is still running
+  - 🟢 the session is **ready** for your next prompt
+
+  Prefer a single light? Turn off *One Traffic Light per Session* in the gear menu; each lamp then lights up when at least one session is in that state.
 - **Plan limits**: 5-hour and weekly usage with reset times, plus a 24-hour history chart
 - **Sessions**: every running Claude Code session with status, project, model and context usage.
   **Click a session to jump to its window**. With iTerm2 and Terminal.app it selects the exact tab.
@@ -57,7 +59,7 @@ To start ClaudeBar automatically, enable **Launch at Login** in the gear menu.
 
 | Data | Source |
 | --- | --- |
-| Session status | `~/.claude/sessions/<pid>.json`, written by Claude Code (`idle`, `busy`, `waiting`) |
+| Session status | `~/.claude/sessions/<pid>.json`, written by Claude Code (`idle`, `busy`, `shell`, `waiting`) |
 | Plan limits | the `rate_limits` field Claude Code passes to the [status line](https://code.claude.com/docs/en/statusline); the helper stores it in `~/.claude/claude-bar/` |
 | Token usage | the session transcripts in `~/.claude/projects/**/*.jsonl` |
 | Window focus | the session's TTY, matched against iTerm2/Terminal.app tabs via AppleScript; for other hosts (Ghostty, Warp, VS Code, JetBrains, Claude desktop …) the owning app is activated |

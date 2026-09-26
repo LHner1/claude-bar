@@ -59,10 +59,13 @@ final class AppModel: ObservableObject {
 
             let cwd = obj["cwd"] as? String ?? ""
             let name = (obj["name"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? URL(fileURLWithPath: cwd).lastPathComponent
-            let since = (obj["statusUpdatedAt"] as? NSNumber).map { Date(timeIntervalSince1970: $0.doubleValue / 1000) }
+            func date(_ key: String) -> Date? {
+                (obj[key] as? NSNumber).map { Date(timeIntervalSince1970: $0.doubleValue / 1000) }
+            }
             var session = ClaudeSession(id: sessionId, pid: pid, name: name, cwd: cwd,
                                         state: SessionState(obj["status"] as? String),
-                                        waitingFor: obj["waitingFor"] as? String, statusSince: since)
+                                        waitingFor: obj["waitingFor"] as? String,
+                                        statusSince: date("statusUpdatedAt"), startedAt: date("startedAt"))
 
             // Extra info from the status line (model, context, cost)
             let extra = Paths.barSessions.appendingPathComponent("\(sessionId).json")
@@ -76,7 +79,8 @@ final class AppModel: ObservableObject {
             result.append(session)
         }
 
-        result.sort { ($0.state, $0.statusSince ?? .distantPast) < ($1.state, $1.statusSince ?? .distantPast) }
+        // Stable order (oldest session first) so each session keeps its place in the menu bar
+        result.sort { ($0.startedAt ?? .distantPast, $0.pid) < ($1.startedAt ?? .distantPast, $1.pid) }
         if result.map(\.signature) != sessions.map(\.signature) { sessions = result }
         let newLight = TrafficLight(result)
         if newLight != light { light = newLight }

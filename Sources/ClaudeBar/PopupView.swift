@@ -27,6 +27,7 @@ private struct HeaderView: View {
     @AppStorage(Setting.showFiveHour) private var showFiveHour = true
     @AppStorage(Setting.showSevenDay) private var showSevenDay = true
     @AppStorage(Setting.showTodayTokens) private var showTodayTokens = false
+    @AppStorage(Setting.lightPerSession) private var lightPerSession = true
 
     var body: some View {
         HStack(spacing: 10) {
@@ -41,6 +42,7 @@ private struct HeaderView: View {
             Spacer()
             Menu {
                 Section("Show in Menu Bar") {
+                    Toggle("One Traffic Light per Session", isOn: $lightPerSession)
                     Toggle("5-Hour Limit", isOn: $showFiveHour)
                     Toggle("Weekly Limit", isOn: $showSevenDay)
                     Toggle("Tokens Today", isOn: $showTodayTokens)
@@ -71,7 +73,7 @@ private struct HeaderView: View {
         var parts: [String] = []
         let waiting = sessions.filter { $0.state == .waiting }.count
         let idle = sessions.filter { $0.state == .idle }.count
-        let busy = sessions.filter { $0.state == .busy }.count
+        let busy = sessions.filter { $0.state.isWorking }.count
         if waiting > 0 { parts.append("\(waiting) need\(waiting == 1 ? "s" : "") you") }
         if idle > 0 { parts.append("\(idle) ready") }
         if busy > 0 { parts.append("\(busy) working") }
@@ -241,10 +243,7 @@ private struct SessionRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Circle()
-                .fill(session.state.color.gradient)
-                .frame(width: 8, height: 8)
-                .shadow(color: session.state.color.opacity(0.6), radius: 2)
+            TrafficLightView(light: TrafficLight(session.state), lampSize: 4.5, spacing: 1.5)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(session.name)

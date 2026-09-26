@@ -13,25 +13,27 @@ enum Paths {
 
 // MARK: - Sessions
 
-enum SessionState: Int, Comparable {
-    case waiting = 0, idle, busy, unknown
+enum SessionState {
+    case waiting, idle, busy, shell, unknown
 
     init(_ raw: String?) {
         switch raw {
         case "waiting": self = .waiting
         case "idle": self = .idle
         case "busy": self = .busy
+        // Claude Code reports "shell" when the turn is over but a background shell command is still running
+        case "shell": self = .shell
         default: self = .unknown
         }
     }
 
-    static func < (a: Self, b: Self) -> Bool { a.rawValue < b.rawValue }
+    var isWorking: Bool { self == .busy || self == .shell }
 
     var color: Color {
         switch self {
         case .waiting: .red
         case .idle: .green
-        case .busy: .orange
+        case .busy, .shell: .orange
         case .unknown: .gray
         }
     }
@@ -41,6 +43,7 @@ enum SessionState: Int, Comparable {
         case .waiting: "needs you"
         case .idle: "ready"
         case .busy: "working"
+        case .shell: "running shell"
         case .unknown: "unknown"
         }
     }
@@ -54,6 +57,7 @@ struct ClaudeSession: Identifiable {
     let state: SessionState
     let waitingFor: String?
     let statusSince: Date?
+    let startedAt: Date?
     var model: String?
     var contextPct: Double?
     var costUSD: Double?
@@ -69,8 +73,15 @@ struct TrafficLight: Equatable {
 
     init(_ sessions: [ClaudeSession]) {
         red = sessions.contains { $0.state == .waiting }
-        yellow = sessions.contains { $0.state == .busy }
+        yellow = sessions.contains { $0.state.isWorking }
         green = sessions.contains { $0.state == .idle }
+    }
+
+    /// Light for a single session: exactly one lamp (or none if the state is unknown).
+    init(_ state: SessionState) {
+        red = state == .waiting
+        yellow = state.isWorking
+        green = state == .idle
     }
 
     init() {}

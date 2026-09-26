@@ -4,6 +4,7 @@ enum Setting {
     static let showFiveHour = "showFiveHour"
     static let showSevenDay = "showSevenDay"
     static let showTodayTokens = "showTodayTokens"
+    static let lightPerSession = "lightPerSession"
 }
 
 /// Status item content: traffic light plus small Stats-style value widgets.
@@ -12,10 +13,21 @@ struct MenuBarLabel: View {
     @AppStorage(Setting.showFiveHour) private var showFiveHour = true
     @AppStorage(Setting.showSevenDay) private var showSevenDay = true
     @AppStorage(Setting.showTodayTokens) private var showTodayTokens = false
+    @AppStorage(Setting.lightPerSession) private var lightPerSession = true
+    private let maxLights = 12
 
     var body: some View {
         HStack(spacing: 5) {
-            TrafficLightView(light: model.light)
+            if lightPerSession, !model.sessions.isEmpty {
+                // One light per session, in the same order as the popup list
+                HStack(spacing: 2.5) {
+                    ForEach(model.sessions.prefix(maxLights)) { session in
+                        TrafficLightView(light: TrafficLight(session.state))
+                    }
+                }
+            } else {
+                TrafficLightView(light: model.light)
+            }
             if showFiveHour {
                 MiniWidget(title: "5H", value: percent(model.limits?.fiveHour))
             }
