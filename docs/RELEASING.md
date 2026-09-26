@@ -9,7 +9,7 @@ git push origin v1.0.1
 
 The tag must look like `vX.Y.Z` (e.g. `v1.2.0`). Anything else, like `v1.2`, fails the build.
 
-The [release workflow](../.github/workflows/release.yml) then, in about 3 minutes:
+The [release workflow](../.github/workflows/release.yml) then, in 1–2 minutes:
 
 1. builds a universal app (Apple Silicon + Intel) with that version
 2. publishes a GitHub release with `ClaudeBar.zip` and its SHA-256
