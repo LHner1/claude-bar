@@ -9,7 +9,7 @@ cask "claude-bar" do
   desc "Menu bar app for Claude Code sessions, plan limits and token usage"
   homepage "https://github.com/LHner1/claude-bar"
 
-  depends_on macos: ">= :sonoma"
+  depends_on macos: :sonoma
 
   app "ClaudeBar.app"
 
