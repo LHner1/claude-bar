@@ -213,12 +213,14 @@ private struct SessionsSection: View {
             } else {
                 VStack(spacing: 2) {
                     ForEach(model.sessions.prefix(maxShown)) { session in
-                        SessionRow(session: session, now: model.now) {
+                        SessionRow(session: session, now: model.now, open: {
                             model.closePopup?()
                             if !WindowFocuser.focus(session) {
                                 WindowFocuser.revealFolder(session.cwd)
                             }
-                        }
+                        }, kill: {
+                            model.terminate(session)
+                        })
                     }
                     if model.sessions.count > maxShown {
                         Text("+ \(model.sessions.count - maxShown) more")
@@ -237,6 +239,7 @@ private struct SessionRow: View {
     let session: ClaudeSession
     let now: Date
     let open: () -> Void
+    let kill: () -> Void
     // ObservableObject instead of @State: @State is a macro in newer SDKs and the macro plugin
     // is missing from the Command Line Tools, so this keeps the app buildable without Xcode.
     @StateObject private var hover = HoverState()
@@ -283,6 +286,8 @@ private struct SessionRow: View {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(session.id, forType: .string)
             }
+            Divider()
+            Button("Kill Session", role: .destructive, action: kill)
         }
     }
 

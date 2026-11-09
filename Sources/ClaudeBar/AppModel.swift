@@ -55,7 +55,10 @@ final class AppModel: ObservableObject {
                   let sessionId = obj["sessionId"] as? String
             else { continue }
             // Sessions spawned through the Agent SDK have no window and no status – skip them.
-            if (obj["entrypoint"] as? String)?.hasPrefix("sdk") == true { continue }
+            let entrypoint = obj["entrypoint"] as? String
+            if entrypoint?.hasPrefix("sdk") == true { continue }
+            // A terminal session whose terminal was closed lives on as an orphan without a TTY.
+            if entrypoint == "cli", !hasControllingTerminal(pid) { continue }
 
             let cwd = obj["cwd"] as? String ?? ""
             let name = (obj["name"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? URL(fileURLWithPath: cwd).lastPathComponent
@@ -84,6 +87,25 @@ final class AppModel: ObservableObject {
         if result.map(\.signature) != sessions.map(\.signature) { sessions = result }
         let newLight = TrafficLight(result)
         if newLight != light { light = newLight }
+    }
+
+    /// Ends a session's process: SIGTERM first, SIGKILL if it is still alive after two seconds.
+    func terminate(_ session: ClaudeSession) {
+        let pid = session.pid
+        guard pid > 1, isClaudeProcess(pid) else { refreshSessions(); return }
+        kill(pid, SIGTERM)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+            if let self, self.isClaudeProcess(pid) { kill(pid, SIGKILL) }
+            self?.refreshSessions()
+        }
+        refreshSessions()
+    }
+
+    private func hasControllingTerminal(_ pid: Int32) -> Bool {
+        var info = proc_bsdinfo()
+        let size = Int32(MemoryLayout<proc_bsdinfo>.size)
+        guard proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, size) == size else { return true }
+        return info.e_tdev != UInt32.max  // NODEV = no controlling terminal
     }
 
     private func isClaudeProcess(_ pid: Int32) -> Bool {
