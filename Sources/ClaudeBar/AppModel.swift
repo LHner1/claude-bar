@@ -59,6 +59,10 @@ final class AppModel: ObservableObject {
             if entrypoint?.hasPrefix("sdk") == true { continue }
             // A terminal session whose terminal was closed lives on as an orphan without a TTY.
             if entrypoint == "cli", !hasControllingTerminal(pid) { continue }
+            // Pre-warmed spares of the background daemon have no job yet.
+            if obj["spare"] as? Bool == true { continue }
+            // A session moved to the background lives on as that job, which is listed on its own.
+            if obj["parkedJobId"] is String { continue }
 
             let cwd = obj["cwd"] as? String ?? ""
             let name = (obj["name"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? URL(fileURLWithPath: cwd).lastPathComponent
