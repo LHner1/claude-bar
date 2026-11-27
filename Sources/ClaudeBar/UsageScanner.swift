@@ -1,7 +1,7 @@
 import Foundation
 
 /// Reads the transcripts under ~/.claude/projects incrementally and sums up token usage
-/// per hour and model. The first run reads everything, later runs only newly appended lines.
+/// and its API list price per hour and model. The first run reads everything, later runs only newly appended lines.
 actor UsageScanner {
     private struct FileState {
         var offset: UInt64
@@ -10,7 +10,7 @@ actor UsageScanner {
     private struct Entry {
         var hour: Date
         var model: String
-        var counts: TokenCounts
+        var usage: RequestUsage
     }
 
     private var files: [String: FileState] = [:]
@@ -70,10 +70,7 @@ actor UsageScanner {
               let date = isoFractional.date(from: timestamp) ?? iso.date(from: timestamp)
         else { return }
 
-        func int(_ key: String) -> Int { (usage[key] as? NSNumber)?.intValue ?? 0 }
-        let counts = TokenCounts(input: int("input_tokens"), output: int("output_tokens"),
-                                 cacheWrite: int("cache_creation_input_tokens"),
-                                 cacheRead: int("cache_read_input_tokens"), messages: 1)
+        let request = requestUsage(usage)
 
         let hour = Calendar.current.dateInterval(of: .hour, for: date)?.start ?? date
         let day = Calendar.current.startOfDay(for: date)
@@ -81,20 +78,34 @@ actor UsageScanner {
 
         if let previous = seen[key] {
             // Same message again: only add the increase (e.g. the final output_tokens value)
-            let delta = TokenCounts(input: max(0, counts.input - previous.counts.input),
-                                    output: max(0, counts.output - previous.counts.output),
-                                    cacheWrite: max(0, counts.cacheWrite - previous.counts.cacheWrite),
-                                    cacheRead: max(0, counts.cacheRead - previous.counts.cacheRead))
-            guard delta.total > 0 else { return }
+            let merged = previous.usage.merged(with: request)
+            guard merged != previous.usage else { return }
+            let delta = TokenCounts(model: previous.model, usage: merged)
+                - TokenCounts(model: previous.model, usage: previous.usage)
             snapshot.hourly[previous.hour, default: [:]][previous.model, default: TokenCounts()] += delta
-            seen[key]?.counts += delta
+            seen[key]?.usage = merged
             return
         }
 
-        seen[key] = Entry(hour: hour, model: model, counts: counts)
-        snapshot.hourly[hour, default: [:]][model, default: TokenCounts()] += counts
+        seen[key] = Entry(hour: hour, model: model, usage: request)
+        snapshot.hourly[hour, default: [:]][model, default: TokenCounts()] += TokenCounts(model: model, usage: request)
         if let sessionId = obj["sessionId"] as? String {
             snapshot.sessionsByDay[day, default: []].insert(sessionId)
         }
+    }
+
+    private func requestUsage(_ usage: [String: Any]) -> RequestUsage {
+        func int(_ dict: [String: Any]?, _ key: String) -> Int { (dict?[key] as? NSNumber)?.intValue ?? 0 }
+        // Cache writes cost more with a 1-hour lifetime. Without the breakdown they count as 5-minute writes.
+        let lifetimes = usage["cache_creation"] as? [String: Any]
+        let write1h = int(lifetimes, "ephemeral_1h_input_tokens")
+        let write5m = max(int(lifetimes, "ephemeral_5m_input_tokens"),
+                          int(usage, "cache_creation_input_tokens") - write1h)
+        return RequestUsage(input: int(usage, "input_tokens"), output: int(usage, "output_tokens"),
+                            cacheWrite5m: write5m, cacheWrite1h: write1h,
+                            cacheRead: int(usage, "cache_read_input_tokens"),
+                            webSearches: int(usage["server_tool_use"] as? [String: Any], "web_search_requests"),
+                            fast: usage["speed"] as? String == "fast",
+                            usOnly: usage["inference_geo"] as? String == "us")
     }
 }

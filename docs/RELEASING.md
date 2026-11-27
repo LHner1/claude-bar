@@ -1,5 +1,11 @@
 # Releasing
 
+## Model prices
+
+The API value uses the price list in [Pricing.swift](../Sources/ClaudeBar/Pricing.swift). When Anthropic adds a model
+or changes a price, update it from the [pricing page](https://platform.claude.com/docs/en/about-claude/pricing),
+including the date in its comment, and ship a new version.
+
 ## Ship a version
 
 ```bash

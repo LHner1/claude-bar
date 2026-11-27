@@ -19,6 +19,8 @@ Click it for sessions, limits and token usage at a glance.
 - **Jump to the session.** Click it and its terminal comes to the front (in iTerm2 and Terminal.app, the exact tab).
 - **Plan limits.** 5-hour and weekly usage with reset times and a 24-hour chart.
 - **Token usage.** Tokens per hour, day and model for today, 7 or 30 days.
+- **API value.** What that usage would cost at Anthropic API list prices, in total and per model.
+- **Light, dark or system** appearance (gear menu → **Appearance**).
 - **A status line for Claude Code:** `Opus · my-repo ⎇ main · ctx 17% · 5h 38% ↻2h52m · 7d 12%`
 - **100% local.** No network, no telemetry.
 
@@ -76,6 +78,12 @@ ClaudeBar only reads files Claude Code already writes on your Mac:
 
 Limits refresh while a session is running; otherwise you see the last known values.
 The first click on a session asks for permission to control your terminal, so ClaudeBar can pick the right tab.
+
+**About the API value:** it is an estimate, not a bill. Each response is priced with the
+[API list prices](https://platform.claude.com/docs/en/about-claude/pricing) built into the app, including cache
+writes and reads, fast mode, US-only inference, web searches and Haiku 5.5's long-prompt tier. It only covers
+Claude Code on this Mac, for as long as Claude Code keeps its transcripts (30 days by default). A model that is
+newer than the app shows no price and the total is marked with `≥`.
 
 <details>
 <summary><b>Privacy & security details</b></summary>

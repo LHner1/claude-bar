@@ -28,6 +28,7 @@ private struct HeaderView: View {
     @AppStorage(Setting.showSevenDay) private var showSevenDay = true
     @AppStorage(Setting.showTodayTokens) private var showTodayTokens = false
     @AppStorage(Setting.lightPerSession) private var lightPerSession = true
+    @AppStorage(Setting.appearance) private var appearance = PopupAppearance.system
 
     var body: some View {
         HStack(spacing: 10) {
@@ -48,6 +49,9 @@ private struct HeaderView: View {
                     Toggle("Tokens Today", isOn: $showTodayTokens)
                 }
                 Divider()
+                Picker("Appearance", selection: $appearance) {
+                    ForEach(PopupAppearance.allCases) { Text($0.rawValue).tag($0) }
+                }
                 Toggle("Launch at Login", isOn: launchAtLogin)
                 Button("Open Claude Folder") {
                     NSWorkspace.shared.open(Paths.claude)
@@ -65,6 +69,7 @@ private struct HeaderView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
+        .onChange(of: appearance) { model.applyAppearance?() }
     }
 
     private var summary: String {
@@ -352,6 +357,8 @@ private struct UsageSection: View {
             }
 
             VStack(spacing: 2) {
+                DetailRow(label: "API value", value: Fmt.usd(stats.totals))
+                    .help("What this usage would cost at Anthropic API list prices (estimate)")
                 DetailRow(label: "Total tokens", value: Fmt.tokens(stats.totals.total))
                 DetailRow(label: "Input", value: Fmt.tokens(stats.totals.input))
                 DetailRow(label: "Output", value: Fmt.tokens(stats.totals.output))
@@ -367,8 +374,8 @@ private struct UsageSection: View {
                 SectionHeader(title: "Models")
                 VStack(spacing: 2) {
                     ForEach(stats.models, id: \.name) { entry in
-                        DetailRow(label: entry.name, value: share(entry.tokens, of: stats.totals.total),
-                                  color: stats.colors[entry.name])
+                        DetailRow(label: entry.name, value: share(entry.counts.total, of: stats.totals.total),
+                                  color: stats.colors[entry.name], trailing: Fmt.usd(entry.counts))
                     }
                 }
                 .padding(.horizontal, 12)
@@ -386,7 +393,7 @@ private struct UsageSection: View {
         var bars: [UsageBar] = []
         var totals = TokenCounts()
         var sessions = 0
-        var models: [(name: String, tokens: Int)] = []
+        var models: [(name: String, counts: TokenCounts)] = []
         var colors: [String: Color] = [:]
         var domain: ClosedRange<Date>
     }
@@ -404,7 +411,7 @@ private struct UsageSection: View {
 
         var stats = Stats(domain: start...end)
         var perBucket: [Date: [String: Int]] = [:]
-        var perModel: [String: Int] = [:]
+        var perModel: [String: TokenCounts] = [:]
 
         for (hour, models) in model.usage.hourly where hour >= start && hour < end {
             let bucket = range == .today ? hour : cal.startOfDay(for: hour)
@@ -412,14 +419,14 @@ private struct UsageSection: View {
                 let name = Fmt.modelName(modelId)
                 stats.totals += counts
                 perBucket[bucket, default: [:]][name, default: 0] += counts.total
-                perModel[name, default: 0] += counts.total
+                perModel[name, default: TokenCounts()] += counts
             }
         }
 
         stats.bars = perBucket.flatMap { date, models in
             models.map { UsageBar(date: date, model: $0.key, tokens: $0.value) }
         }
-        stats.models = perModel.sorted { $0.value > $1.value }.map { (name: $0.key, tokens: $0.value) }
+        stats.models = perModel.sorted { $0.value.total > $1.value.total }.map { (name: $0.key, counts: $0.value) }
         stats.colors = Fmt.modelColors(stats.models.map(\.name))
         stats.sessions = model.usage.sessionsByDay
             .filter { $0.key >= start && $0.key < end }

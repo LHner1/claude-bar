@@ -5,6 +5,26 @@ enum Setting {
     static let showSevenDay = "showSevenDay"
     static let showTodayTokens = "showTodayTokens"
     static let lightPerSession = "lightPerSession"
+    static let appearance = "appearance"
+}
+
+/// Look of the popup. The menu bar item always follows the menu bar.
+enum PopupAppearance: String, CaseIterable, Identifiable {
+    case system = "System", light = "Light", dark = "Dark"
+    var id: Self { self }
+
+    static var current: PopupAppearance {
+        UserDefaults.standard.string(forKey: Setting.appearance).flatMap(PopupAppearance.init) ?? .system
+    }
+
+    /// nil follows the system setting.
+    var nsAppearance: NSAppearance? {
+        switch self {
+        case .system: nil
+        case .light: NSAppearance(named: .aqua)
+        case .dark: NSAppearance(named: .darkAqua)
+        }
+    }
 }
 
 /// Status item content: traffic light plus small Stats-style value widgets.

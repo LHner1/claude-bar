@@ -121,15 +121,35 @@ struct TokenCounts: Equatable {
     var cacheWrite = 0
     var cacheRead = 0
     var messages = 0
+    /// Estimated API list price in USD
+    var cost = 0.0
+    /// Tokens of models without a known price; `cost` does not include them
+    var unpriced = 0
 
     var total: Int { input + output + cacheWrite + cacheRead }
 
     static func + (a: Self, b: Self) -> Self {
         TokenCounts(input: a.input + b.input, output: a.output + b.output, cacheWrite: a.cacheWrite + b.cacheWrite,
-                    cacheRead: a.cacheRead + b.cacheRead, messages: a.messages + b.messages)
+                    cacheRead: a.cacheRead + b.cacheRead, messages: a.messages + b.messages,
+                    cost: a.cost + b.cost, unpriced: a.unpriced + b.unpriced)
+    }
+
+    static func - (a: Self, b: Self) -> Self {
+        TokenCounts(input: a.input - b.input, output: a.output - b.output, cacheWrite: a.cacheWrite - b.cacheWrite,
+                    cacheRead: a.cacheRead - b.cacheRead, messages: a.messages - b.messages,
+                    cost: a.cost - b.cost, unpriced: a.unpriced - b.unpriced)
     }
 
     static func += (a: inout Self, b: Self) { a = a + b }
+}
+
+extension TokenCounts {
+    /// Counts and price of a single response.
+    init(model: String, usage: RequestUsage) {
+        let cost = Pricing.cost(model: model, usage: usage)
+        self.init(input: usage.input, output: usage.output, cacheWrite: usage.cacheWrite, cacheRead: usage.cacheRead,
+                  messages: 1, cost: cost ?? 0, unpriced: cost == nil ? usage.tokens : 0)
+    }
 }
 
 struct UsageSnapshot {
@@ -152,6 +172,15 @@ enum Fmt {
         case 1_000...: return String(format: "%.1fK", d / 1_000)
         default: return "\(n)"
         }
+    }
+
+    /// $0.42, $12.30, $1,234. A leading "≥" marks sums that miss models without a known price.
+    static func usd(_ counts: TokenCounts) -> String {
+        if counts.unpriced > 0, counts.cost == 0 { return "–" }
+        let digits = counts.cost >= 100 ? 0 : 2
+        let amount = counts.cost.formatted(.currency(code: "USD").precision(.fractionLength(digits))
+            .locale(Locale(identifier: "en_US")))
+        return counts.unpriced > 0 ? "≥ \(amount)" : amount
     }
 
     /// Compact form for the menu bar: 1.2M, 850K

@@ -41,6 +41,8 @@ final class StatusItemController: NSObject {
         setUpStatusItem()
         setUpPanel()
         model.closePopup = { [weak self] in self?.closePanel() }
+        model.applyAppearance = { [weak self] in self?.applyAppearance() }
+        applyAppearance()
     }
 
     private func setUpStatusItem() {
@@ -87,6 +89,10 @@ final class StatusItemController: NSObject {
         content.onSizeChange = { [weak self] in self?.resizePanel() }
         effect.addSubview(content)
         panel.contentView = effect
+    }
+
+    private func applyAppearance() {
+        panel.appearance = PopupAppearance.current.nsAppearance
     }
 
     @objc private func togglePanel() {

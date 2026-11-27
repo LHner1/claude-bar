@@ -13,6 +13,8 @@ final class AppModel: ObservableObject {
 
     /// Set by the status item controller so views can dismiss the popup.
     var closePopup: (() -> Void)?
+    /// Set by the status item controller so a changed appearance applies at once.
+    var applyAppearance: (() -> Void)?
 
     private let scanner = UsageScanner()
     private var timers: [Timer] = []

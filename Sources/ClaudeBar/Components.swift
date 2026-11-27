@@ -27,6 +27,8 @@ struct DetailRow: View {
     let label: String
     let value: String
     var color: Color? = nil
+    /// Second value column with a fixed width, so the rows line up
+    var trailing: String? = nil
 
     var body: some View {
         HStack(spacing: 6) {
@@ -40,6 +42,11 @@ struct DetailRow: View {
             Spacer(minLength: 8)
             Text(value)
                 .monospacedDigit()
+            if let trailing {
+                Text(trailing)
+                    .monospacedDigit()
+                    .frame(width: 60, alignment: .trailing)
+            }
         }
         .font(.system(size: 12))
         .frame(height: 16)
